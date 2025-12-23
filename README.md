@@ -1,4 +1,5 @@
 Abstract
+
 Background: Brain tumor detection from MRI scans remains a critical challenge in medical diagnostics, requiring rapid and accurate analysis to guide treatment decisions.
 
 Methods: I conducted a systematic comparison of six deep learning architectures for automated brain tumor classification using transfer learning on 253 grayscale MRI images (155 tumor-positive, 98 tumor-negative). Models evaluated included a baseline CNN, VGG16, ResNet50, InceptionV3, EfficientNetB0, and MobileNetV2. All architectures utilized ImageNet pre-trained weights with custom classification heads optimized for medical imaging.
