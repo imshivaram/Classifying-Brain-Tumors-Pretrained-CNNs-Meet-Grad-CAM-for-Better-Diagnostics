@@ -1,59 +1,95 @@
 Abstract
 Background: Brain tumor detection from MRI scans remains a critical challenge in medical diagnostics, requiring rapid and accurate analysis to guide treatment decisions.
+
 Methods: I conducted a systematic comparison of six deep learning architectures for automated brain tumor classification using transfer learning on 253 grayscale MRI images (155 tumor-positive, 98 tumor-negative). Models evaluated included a baseline CNN, VGG16, ResNet50, InceptionV3, EfficientNetB0, and MobileNetV2. All architectures utilized ImageNet pre-trained weights with custom classification heads optimized for medical imaging.
+
 Results: MobileNetV2 demonstrated exceptional performance with a validation AUC of 99.5% using only 2.4M parameters in frozen configuration. Fine-tuning achieved clinical optimization with 98.0% AUC and 100% tumor recall (zero false negatives), prioritizing patient safety. The model correctly identified all 31 tumor cases while maintaining 90% overall accuracy. Grad-CAM visualization validated that model decisions focused on clinically relevant tumor regions.
+
 Conclusions: Lightweight architectures employing depth-wise separable convolutions provide an optimal balance between accuracy and computational efficiency for medical imaging tasks with limited data. MobileNetV2's 2.4M parameters achieved superior performance compared to networks up to 10× larger, demonstrating that parameter efficiency prevents overfitting while maintaining representational power. The achievement of 100% tumor detection establishes clinical viability for screening applications.
+
 Keywords: Brain tumor detection, transfer learning, deep learning, medical image analysis, Grad-CAM, MobileNetV2, convolutional neural networks
 
 1. Introduction
+
 1.1 Clinical Context and Motivation
+
 Brain tumors affect approximately one million individuals in the United States, with over 90,000 new diagnoses annually. Early detection significantly influences treatment planning and patient outcomes, yet manual MRI interpretation remains time-consuming, requires specialized expertise, and demonstrates inter-observer variability. Magnetic resonance imaging serves as the diagnostic gold standard for brain tumor visualization, but interpretation demands considerable radiologist time and specialized training.
 Automated detection systems offer several clinical advantages. These include facilitating earlier diagnosis through systematic screening, reducing radiologist workload via pre-filtering of negative cases, providing standardized assessments across healthcare settings, enabling deployment in resource-limited environments, and serving as decision support for diagnostic confirmation. However, medical AI systems must prioritize high sensitivity to minimize false negatives, as missing a tumor diagnosis carries severe clinical consequences.
+
 1.2 Deep Learning in Medical Imaging
+
 Convolutional neural networks have demonstrated radiologist-level performance across various diagnostic tasks by automatically learning hierarchical feature representations from raw imaging data. Transfer learning, where models pre-trained on large-scale datasets are adapted to medical imaging tasks, proves particularly effective for scenarios with limited labeled data. This approach leverages low-level features such as edge detectors and texture analyzers learned from natural images, which transfer effectively to medical imaging domains.
+
 1.3 Research Objectives
+
 This study aims to develop a robust brain tumor classifier through systematic comparison of six architectures, optimize for both accuracy and computational efficiency suitable for edge deployment, interpret model decisions using explainable AI techniques, achieve high tumor recall to prioritize patient safety, and analyze architectural characteristics that enhance medical imaging performance.
 
+
 2. Methods
+
 2.1 Dataset Characteristics
+
 The dataset comprised 253 grayscale MRI scans obtained from the Kaggle Brain MRI Images for Brain Tumor Detection repository. Images included 155 tumor-positive cases (61.3%) and 98 tumor-negative cases (38.7%), representing a moderate class imbalance ratio of 1.58:1. Data were partitioned into training (203 images, 80%) and validation (50 images, 20%) sets using a fixed random seed (42) for reproducibility.
+
 2.2 Preprocessing and Augmentation Pipeline
+
 All images underwent standardized preprocessing, including resizing to 150×150 pixels, normalization of pixel values to the [0, 1] range, and retention of single-channel grayscale format to reduce parameter requirements. Given the limited dataset size, aggressive augmentation simulated domain variations including rotation (±20°), width and height shifts (±20%), shear transformation (20%), zoom (±20%), and horizontal flipping. These transformations effectively increased the training data by 10-20× while simulating real-world scanner variations, patient positioning differences, and acquisition protocol variability.
 Class imbalance was addressed through computed class weights, assigning weight 1.0 to the majority tumor class and weight 1.58 to the minority non-tumor class, thereby penalizing the model more heavily for missed tumor cases.
+
 2.3 Model Architecture Selection
+
 Six architectures were systematically evaluated through ablation studies. The baseline CNN (4.8M parameters) established from-scratch performance benchmarks. VGG16 (14.8M parameters) tested deep architectures with uniform 3×3 convolutions. ResNet50 (23.9M parameters) evaluated residual connections across 50 layers for improved gradient flow. InceptionV3 (22.1M parameters) examined multi-scale feature extraction through parallel filter banks. EfficientNetB0 (4.2M parameters) assessed compound scaling optimization, balancing depth, width, and resolution. MobileNetV2 (2.4M parameters) investigated depth-wise separable convolutions for computational efficiency.
 Selection criteria emphasized architectural diversity spanning different design philosophies, transferability through ImageNet pre-training, efficiency across a parameter range of 2.4M to 23.9M, and clinical relevance considering deployment constraints.
+
 2.4 Transfer Learning Implementation
+
 The transfer learning approach employed a two-phase training strategy. Initial training utilized frozen backbones with ImageNet pre-trained weights, incorporating a 1×1 convolutional layer to adapt single-channel grayscale input to three-channel RGB format. Custom classification heads consisted of global average pooling, batch normalization, two dense layers (128 units) with ReLU activation and dropout (0.5 and 0.3), and a final sigmoid output layer.
 Fine-tuning of the best-performing model involved gradual unfreezing of the top 30% of backbone layers, training with a reduced learning rate (1×10⁻⁵) to prevent catastrophic forgetting, and shortened training duration (15 epochs) building upon frozen pre-training. This strategy first adapted the classification head to medical imaging characteristics, then refined high-level features for domain-specific textures.
 
 
 HyperparameterValueRationaleImage Size150×150Balance between detail and computational costBatch Size16Maximizes GPU memory utilization without overflowInitial LR1×10⁻³Standard Adam default for frozen transfer learningFine-tune LR1×10⁻⁵100× lower to preserve pre-trained featuresEpochs (Initial)15-20Sufficient for frozen backbone convergenceEpochs (Fine-tune)10Avoids overfitting on small datasetOptimizerAdamAdaptive learning rate, momentum benefitsLoss FunctionBinary CrossentropyStandard for binary classification
+
 2.5 Model Interpretability
+
 Gradient-weighted Class Activation Mapping (Grad-CAM) generated visual explanations by computing gradients of the predicted class with respect to final convolutional feature maps, applying global average pooling to produce importance weights, creating weighted combinations of feature maps as localization heatmaps, and overlaying upsampled heatmaps on original images. This approach enabled clinical validation of model’s focus on tumor regions, identification of misclassification patterns, and provision of interpretable explanations for radiologists.
+
 2.6 Experimental Configuration
+
 Experiments were conducted on Google Colab utilizing NVIDIA T4 GPUs (16GB VRAM) and 12GB system memory. The software environment consisted of TensorFlow 2.19.0 with Keras API, Python 3.10, and standard scientific libraries (NumPy, Pandas, Matplotlib, Seaborn, OpenCV, scikit-learn). Reproducibility was ensured through fixed random seeds and deterministic operations with XLA compilation enabled.
+
 2.7 Evaluation Metrics
-Primary evaluation utilized AUC-ROC for threshold-independent performance assessment handling class imbalance. Secondary metrics included accuracy, precision, recall, F1-score, and confusion matrix analysis. Clinical priority was assigned to recall (sensitivity) for tumor detection. The validation protocol employed hold-out validation (20%, 50 images), ROC curve visualization, and optimal threshold determination.
+
+Primary evaluation utilized AUC-ROC for threshold-independent performance assessment handling class imbalance. Secondary metrics included accuracy, precision, recall, F1-score, and confusion matrix analysis. 
+Clinical priority was assigned to recall (sensitivity) for tumor detection. The validation protocol employed hold-out validation (20%, 50 images), ROC curve visualization, and optimal threshold determination.
+
 
 3. Results
+
 3.1 Baseline Model Performance
+
 The custom baseline CNN established performance benchmarks with validation AUC of 0.798, accuracy of 0.56, and convergence within approximately 5 epochs. This modest performance indicated task difficulty with limited data and provided justification for transfer learning approaches.
 
 MetricValueValidation AUC0.798Validation Accuracy0.56Parameters4.8MTraining Time~5 epochs to convergence
+
 3.2 Transfer Learning Comparison
+
 Frozen backbone results revealed substantial performance variation across architectures. MobileNetV2 achieved exceptional performance with validation AUC of 0.995 and accuracy of 0.90, demonstrating excellent transfer learning from ImageNet to medical imaging. InceptionV3 showed strong multi-scale feature extraction capabilities with AUC of 0.915 and accuracy of 0.82. VGG16 demonstrated moderate performance with AUC of 0.862 and accuracy of 0.70. The baseline CNN achieved AUC of 0.767 with accuracy of 0.78. ResNet50 exhibited poor performance with AUC of 0.761 and accuracy of 0.40, indicating excessive depth causing underfitting. EfficientNetB0 showed training instability with AUC of 0.759 and an accuracy of 0.38.
+
 3.3 Fine-Tuning Results
+
 Fine-tuning of MobileNetV2 involved unfreezing the top 30% of layers and training with learning rate 1×10⁻⁴ for 10 epochs. Results demonstrated validation AUC of 0.980, accuracy of 0.90, precision of 0.86, and critically, recall of 1.00 (100% tumor detection). The confusion matrix revealed 14 true negatives, 5 false positives, 0 false negatives, and 31 true positives. This configuration achieved zero missed tumor diagnoses while maintaining acceptable false positive rate of 26%, representing successful clinical optimization prioritizing patient safety over perfect AUC.
 The classification report confirmed precision of 1.00 for non-tumor cases and 0.86 for tumor cases, with recall of 0.74 for non-tumor and 1.00 for tumor detection. The F1-scores were 0.85 for non-tumor and 0.92 for tumor cases, with overall accuracy of 0.90 across 50 validation samples.
 
 
 PrecisionRecallF1-ScoreSupportNo Tumor1.000.740.8519Tumor0.861.000.9331Accuracy0.9050Macro Avg0.930.870.8950Weighted Avg0.910.900.9050
-3.4 Ensemble Performance
-An ensemble combining fine-tuned MobileNetV2 and frozen InceptionV3 achieved validation AUC of 0.973, maintaining 100% tumor recall but showing slight degradation compared to MobileNetV2 alone (0.980 AUC). Since the single model achieved perfect tumor detection with acceptable specificity, ensembling provided minimal benefit while adding computational cost.
-3.5 Model Interpretability Analysis
-Grad-CAM visualizations for correctly classified tumor cases demonstrated that the model focused on tumor regions with high-confidence predictions (>0.90) showing concentrated activation over tumor boundaries. The visualizations revealed good localization across different MRI types despite variations in contrast, orientation, and intensity. Importantly, heatmaps confirmed the model attended to pathological tissue rather than irrelevant artifacts or edges, supporting diagnostic reliability.
 
+3.4 Ensemble Performance
+
+An ensemble combining fine-tuned MobileNetV2 and frozen InceptionV3 achieved validation AUC of 0.973, maintaining 100% tumor recall but showing slight degradation compared to MobileNetV2 alone (0.980 AUC). Since the single model achieved perfect tumor detection with acceptable specificity, ensembling provided minimal benefit while adding computational cost.
+
+3.5 Model Interpretability Analysis
+
+Grad-CAM visualizations for correctly classified tumor cases demonstrated that the model focused on tumor regions with high-confidence predictions (>0.90) showing concentrated activation over tumor boundaries. The visualizations revealed good localization across different MRI types despite variations in contrast, orientation, and intensity. Importantly, heatmaps confirmed the model attended to pathological tissue rather than irrelevant artifacts or edges, supporting diagnostic reliability.
 
 ModelVal AUCVal AccParams (M)ConvergenceKey InsightMobileNetV20.9950.902.4ExcellentBest overall performance, near-perfect AUCInceptionV30.9150.8222.1GoodStrong multi-scale featuresVGG160.8620.7014.8ModerateImproved from initial attemptBaseline CNN0.7670.784.8ModerateReasonable from-scratch performanceResNet500.7610.4023.9PoorToo deep, underfittingEfficientNetB00.7590.384.2UnstableTraining instability issues
 Confusion Matrix (MobileNetV2 Fine-Tuned):
@@ -61,28 +97,40 @@ Confusion Matrix (MobileNetV2 Fine-Tuned):
 Actual \ PredictedNo TumorTumorNo Tumor14 (TN)5 (FP)Tumor0 (FN)31 (TP)
 
 4. Discussion
+
 4.1 Architecture Performance Analysis
+
 MobileNetV2's exceptional performance stems from several architectural advantages. Depthwise separable convolutions separate spatial and channel-wise filtering, dramatically reducing parameters while maintaining representational power. Inverted residual blocks expand low-dimensional representations, apply filtering, then compress back to preserve important features while enabling efficient computation. Linear bottlenecks in final projection layers prevent ReLU activation from destroying information in low-dimensional manifolds, critical for maintaining feature expressiveness.
 The optimal parameter count of 2.4M represents an ideal balance between sufficient capacity for the task and prevention of overfitting on 203 training samples. This contrasts sharply with ResNet50's 23.9M parameters causing catastrophic underfitting. Skip connections in inverted residuals enable effective backpropagation, facilitating efficient gradient flow.
+
 4.2 Clinical Optimization Trade-offs
+
 The transition from frozen MobileNetV2 (99.5% AUC) to fine-tuned (98.0% AUC) represents successful medical AI development rather than performance degradation. The frozen model optimized for overall discrimination with high AUC but included some false negatives. Fine-tuning adjusted the decision boundary to eliminate all false negatives, achieving 100% sensitivity by accepting additional false positives. This trade-off appropriately prioritizes clinical objectives where false alarms are acceptable but missed cancer diagnoses are not.
 InceptionV3's multi-scale feature extraction achieved 91.5% AUC through parallel convolutional pathways (1×1, 3×3, 5×5) capturing tumor features at different scales. However, its 22.1M parameters (9× more than MobileNetV2) with 8% lower frozen AUC demonstrates poor efficiency relative to the lightweight architecture.
+
 4.3 Failure Mode Analysis
+
 ResNet50's failure (0.757 AUC) resulted from excessive depth unsuitable for 203 training images, with 50 layers creating optimization challenges and gradient flow issues through too many frozen layers. Predictions collapsed near 0.5, indicating underfitting behavior. VGG16's poor initial performance (0.500 AUC) stemmed from majority class prediction collapse, limited representational power of uniform 3×3 convolutions lacking multi-scale capability, parameter redundancy of 14.8M with insufficient regularization, and gradient flow issues across 16 layers without skip connections.
 EfficientNetB0's instability arose from batch normalization variance with small batch size (16), compound scaling optimization mismatch between ImageNet scale and small medical datasets, and architecture search space sensitivity where NAS-derived structures may not generalize to medical imaging.
+
 4.4 Transfer Learning Effectiveness
+
 Transfer learning demonstrated substantial advantages over training from scratch. Low-level features including edge detectors and texture analyzers learned from ImageNet transferred effectively to MRI analysis. The domain gap between natural images and medical images proved bridgeable through sufficient data augmentation. However, unfreezing more than 30% of layers risked catastrophic forgetting of pre-trained representations.
 Comparative analysis revealed frozen transfer learning achieved 0.995 AUC with highest data efficiency and 30% of baseline training time. Fine-tuned transfer learning reached 0.980 AUC with high data efficiency and 40% training time. From-scratch training (baseline) obtained 0.798 AUC with low data efficiency and full training duration. This demonstrates that transfer learning provides 2-3× data efficiency compared to training from scratch.
+
 4.5 Clinical Implementation Considerations
+
 The achieved 100% tumor detection rate with acceptable false positive frequency (5 per 50 cases, 10% false positive rate) meets clinical screening requirements. Low-confidence predictions (0.2-0.7) can flag images requiring human expert review. MobileNetV2's 2.4M parameters enable edge deployment with sub-second inference on mobile hardware, while InceptionV3 provides higher baseline accuracy for critical diagnostic workstations. Ensemble approaches may be reserved for cases requiring maximum computational resources and diagnostic certainty.
 
 5. Conclusions
+
 This systematic study demonstrates exceptional effectiveness of transfer learning for brain tumor detection with limited medical imaging data. MobileNetV2 emerged as the optimal architecture, achieving 99.5% AUC in frozen configuration and 98.0% AUC with 100% tumor recall after fine-tuning, using only 2.4M parameters. The lightweight design employing depthwise separable convolutions provided superior performance compared to networks up to 10× larger, establishing that parameter efficiency prevents overfitting while maintaining representational power.
 Key architectural insights reveal that depthwise separable convolutions excel for small medical datasets, parameter efficiency is critical with 2.4M parameters optimal for 203 training samples, frozen performance predicts transfer learning success, medical fine-tuning should optimize for clinical objectives (100% sensitivity) rather than purely AUC, and larger models do not guarantee better performance on limited data.
 Clinical viability is established through zero missed diagnoses, 90% overall accuracy, interpretability via Grad-CAM, and deployability on mobile and edge devices with models under 3MB. The achievement of perfect sensitivity demonstrates that appropriate architecture selection enables clinically deployable screening systems even with small training datasets.
 For small medical imaging datasets (<500 samples), lightweight architectures with depthwise separable convolutions dramatically outperform larger, deeper networks. The paradigm emphasizes matching model capacity to dataset size, using frozen performance to indicate transfer learning capability, optimizing fine-tuning for clinical objectives, and leveraging parameter efficiency to prevent overfitting. MobileNetV2 achieves the gold standard of perfect tumor detection with practical deployability.
 
 6. Future Directions
+
 Immediate research extensions should pursue external validation on multi-institutional datasets such as the BraTS challenge, extension to volumetric CNNs analyzing full MRI sequences, multi-class classification of tumor types (glioma, meningioma, pituitary), incorporation of multi-modal imaging (T1, T2, FLAIR sequences), and implementation of uncertainty quantification through Monte Carlo Dropout or Bayesian Neural Networks.
 Advanced technical developments could explore attention mechanisms for long-range dependencies, evaluation of Vision Transformers (ViT, Swin Transformer) for medical imaging, self-supervised learning pre-training on unlabeled medical images, federated learning enabling multi-hospital collaboration without data sharing, and active learning prioritizing annotation of informative cases.
 Clinical integration pathways include prospective validation through real-world deployment in clinical workflows, radiologist-in-the-loop collaboration studies, longitudinal tracking of tumor growth patterns, and prediction of treatment response outcomes.
