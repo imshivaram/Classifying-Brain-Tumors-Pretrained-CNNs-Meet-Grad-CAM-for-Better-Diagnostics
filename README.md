@@ -1,4 +1,4 @@
-Abstract
+Abstract:
 
 Background: Brain tumor detection from MRI scans remains a critical challenge in medical diagnostics, requiring rapid and accurate analysis to guide treatment decisions.
 
